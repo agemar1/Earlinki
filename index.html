@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Earlinki — Transferencia P2P</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --surface3: #22222f;
+    --border: #2a2a3a;
+    --accent: #00e5a0;
+    --accent2: #7c6bff;
+    --accent3: #ff6b6b;
+    --text: #f0f0f8;
+    --text2: #8888aa;
+    --text3: #44445a;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 32px rgba(0,0,0,0.5);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #app {
+    position: relative;
+    z-index: 1;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 16px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0 24px;
+  }
+
+  .logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo span { color: var(--accent); }
+
+  .status-pill {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    padding: 5px 12px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s;
+  }
+
+  .status-pill .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text3);
+    transition: all 0.3s;
+  }
+
+  .status-pill.online { border-color: var(--accent); color: var(--accent); }
+  .status-pill.online .dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .status-pill.connecting { border-color: var(--accent2); color: var(--accent2); }
+  .status-pill.connecting .dot { background: var(--accent2); animation: pulse 1s infinite; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: var(--surface3); }
+
+  .card-title {
+    font-size: 0.7rem;
+    font-family: var(--mono);
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  /* Screens */
+  .screen { display: none; flex-direction: column; gap: 12px; animation: fadeIn 0.3s ease; }
+  .screen.active { display: flex; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+  /* Buttons */
+  .btn {
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    padding: 13px 20px;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    width: 100%;
+  }
+  .btn-primary:hover { background: #00ffb3; }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    width: 100%;
+  }
+  .btn-secondary:hover { background: var(--surface3); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    font-size: 0.78rem;
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text3); }
+
+  .btn-danger {
+    background: rgba(255,107,107,0.1);
+    color: var(--accent3);
+    border: 1px solid rgba(255,107,107,0.2);
+    width: 100%;
+  }
+
+  /* Home Screen */
+  .my-id-display {
+    background: var(--surface2);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+
+  .my-id-label { font-size: 0.68rem; font-family: var(--mono); color: var(--text3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+
+  .my-id-code {
+    font-family: var(--mono);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 8px;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,229,160,0.3);
+  }
+
+  .my-id-hint { font-size: 0.72rem; color: var(--text3); margin-top: 6px; }
+
+  /* Connect input */
+  .connect-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .input-field {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 13px 16px;
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 4px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  .input-field:focus { border-color: var(--accent); }
+  .input-field::placeholder { color: var(--text3); letter-spacing: 2px; font-size: 0.85rem; }
+
+  .btn-connect {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 13px 18px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-connect:hover { background: #00ffb3; }
+  .btn-connect:active { transform: scale(0.95); }
+
+  /* Frequent devices */
+  .device-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .device-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .device-item:hover { border-color: var(--accent); background: var(--surface3); }
+  .device-item:active { transform: scale(0.98); }
+
+  .device-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .device-info { flex: 1; min-width: 0; }
+  .device-name { font-weight: 600; font-size: 0.88rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .device-code { font-family: var(--mono); font-size: 0.7rem; color: var(--text2); letter-spacing: 2px; }
+
+  .device-remove {
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 1rem;
+    border-radius: 4px;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .device-remove:hover { color: var(--accent3); }
+
+  .empty-state {
+    text-align: center;
+    padding: 20px;
+    color: var(--text3);
+    font-size: 0.82rem;
+    font-family: var(--mono);
+  }
+
+  /* Connected Screen */
+  .connected-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: rgba(0,229,160,0.05);
+    border: 1px solid rgba(0,229,160,0.2);
+    border-radius: var(--radius-sm);
+    margin-bottom: 4px;
+  }
+
+  .connected-icon { font-size: 1.5rem; }
+  .connected-name { font-weight: 600; font-size: 0.95rem; }
+  .connected-code { font-family: var(--mono); font-size: 0.7rem; color: var(--text2); letter-spacing: 2px; }
+
+  /* Chat / messages area */
+  .messages-area {
+    height: 280px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .messages-area::-webkit-scrollbar { width: 4px; }
+  .messages-area::-webkit-scrollbar-track { background: transparent; }
+  .messages-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg {
+    max-width: 88%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    word-break: break-word;
+    animation: msgIn 0.2s ease;
+  }
+
+  @keyframes msgIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+
+  .msg-sent {
+    background: var(--accent);
+    color: #000;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg-received {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg-meta { font-size: 0.65rem; opacity: 0.6; margin-top: 4px; font-family: var(--mono); }
+  .msg-sent .msg-meta { text-align: right; }
+
+  /* Link message */
+  .msg-link-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .btn-link-action {
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-open { background: rgba(0,0,0,0.3); color: #000; }
+  .btn-copy { background: rgba(0,0,0,0.2); color: #000; }
+
+  /* File message */
+  .msg-file {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    border-bottom-left-radius: 4px;
+    align-self: flex-start;
+    max-width: 88%;
+    animation: msgIn 0.2s ease;
+  }
+
+  .msg-file.sent { align-self: flex-end; border-bottom-left-radius: 12px; border-bottom-right-radius: 4px; }
+
+  .file-icon { font-size: 1.6rem; flex-shrink: 0; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-weight: 600; font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-size { font-family: var(--mono); font-size: 0.68rem; color: var(--text2); margin-top: 2px; }
+
+  .btn-download {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    font-family: var(--sans);
+  }
+  .btn-download:hover { background: #00ffb3; }
+
+  /* Chat input */
+  .chat-input-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .chat-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-family: var(--sans);
+    font-size: 0.88rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    resize: none;
+    -webkit-appearance: none;
+  }
+  .chat-input:focus { border-color: var(--accent2); }
+  .chat-input::placeholder { color: var(--text3); }
+
+  .btn-send {
+    background: var(--accent2);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    align-self: flex-end;
+  }
+  .btn-send:hover { background: #9d8fff; }
+  .btn-send:active { transform: scale(0.95); }
+
+  /* File drop zone */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,229,160,0.04);
+  }
+
+  .drop-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }
+
+  .drop-zone-icon { font-size: 1.8rem; margin-bottom: 8px; }
+  .drop-zone-text { font-size: 0.82rem; color: var(--text2); }
+  .drop-zone-hint { font-size: 0.7rem; color: var(--text3); margin-top: 4px; font-family: var(--mono); }
+
+  /* Progress */
+  .progress-container {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    display: none;
+  }
+
+  .progress-container.active { display: block; }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .progress-filename { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+  .progress-percent { font-family: var(--mono); font-size: 0.82rem; color: var(--accent); font-weight: 700; }
+
+  .progress-bar-bg {
+    height: 6px;
+    background: var(--surface3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 3px;
+    transition: width 0.1s ease;
+    width: 0%;
+  }
+
+  .progress-speed { font-family: var(--mono); font-size: 0.68rem; color: var(--text3); margin-top: 6px; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 10px 20px;
+    font-size: 0.82rem;
+    font-family: var(--mono);
+    color: var(--text);
+    z-index: 1000;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.success { border-color: var(--accent); color: var(--accent); }
+  #toast.error { border-color: var(--accent3); color: var(--accent3); }
+
+  /* Name modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 340px;
+    animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes modalIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:none} }
+
+  .modal h3 { font-size: 1rem; margin-bottom: 6px; }
+  .modal p { font-size: 0.82rem; color: var(--text2); margin-bottom: 16px; line-height: 1.5; }
+
+  .modal-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    color: var(--text);
+    outline: none;
+    margin-bottom: 14px;
+    -webkit-appearance: none;
+  }
+  .modal-input:focus { border-color: var(--accent); }
+
+  .modal-btns { display: flex; gap: 8px; }
+  .modal-btns .btn { flex: 1; }
+
+  /* Waiting animation */
+  .waiting-anim {
+    text-align: center;
+    padding: 12px;
+    color: var(--text2);
+    font-size: 0.82rem;
+    font-family: var(--mono);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent2);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Divider */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text3);
+    font-size: 0.7rem;
+    font-family: var(--mono);
+    letter-spacing: 1px;
+    margin: 4px 0;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* My code share btn */
+  .copy-code-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--text3);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: color 0.15s;
+    margin: 0 auto;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .copy-code-btn:hover { color: var(--accent); }
+
+  /* Disconnect button */
+  .disconnect-btn {
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    margin-left: auto;
+  }
+  .disconnect-btn:hover { color: var(--accent3); }
+
+  /* Save device row */
+  .save-device-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+    font-size: 0.78rem;
+    color: var(--text3);
+    font-family: var(--mono);
+  }
+
+  .save-device-row button {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .save-device-row button:hover { background: rgba(0,229,160,0.1); }
+
+  @media (max-width: 400px) {
+    .my-id-code { font-size: 1.6rem; letter-spacing: 5px; }
+    .card { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">Earl<span>inki</span></div>
+    <div class="status-pill" id="statusPill">
+      <div class="dot"></div>
+      <span id="statusText">iniciando</span>
+    </div>
+  </header>
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="screenHome">
+    <div class="card">
+      <div class="card-title">Tu código</div>
+      <div class="my-id-display">
+        <div class="my-id-label">compartí este código</div>
+        <div class="my-id-code" id="myCode">——</div>
+        <div class="my-id-hint">el otro dispositivo lo ingresa para conectarse</div>
+      </div>
+      <button class="copy-code-btn" onclick="copyMyCode()">
+        📋 copiar código
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Conectar</div>
+      <div class="connect-row">
+        <input class="input-field" id="connectInput" type="text" inputmode="numeric"
+          maxlength="6" placeholder="código" autocomplete="off" spellcheck="false">
+        <button class="btn-connect" onclick="connectToPeer()" title="Conectar">→</button>
+      </div>
+    </div>
+
+    <div class="card" id="frequentCard">
+      <div class="card-title">Dispositivos frecuentes</div>
+      <div class="device-list" id="deviceList"></div>
+    </div>
+  </div>
+
+  <!-- WAITING SCREEN -->
+  <div class="screen" id="screenWaiting">
+    <div class="card">
+      <div class="waiting-anim">
+        <div class="spinner"></div>
+        conectando...
+      </div>
+      <button class="btn-secondary" onclick="cancelConnect()" style="margin-top:12px">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- CONNECTED SCREEN -->
+  <div class="screen" id="screenConnected">
+    <div class="connected-header">
+      <div class="connected-icon">⚡</div>
+      <div>
+        <div class="connected-name" id="connectedName">Dispositivo conectado</div>
+        <div class="connected-code" id="connectedCode"></div>
+      </div>
+      <button class="disconnect-btn" onclick="disconnect()" title="Desconectar">✕</button>
+    </div>
+
+    <div id="saveDeviceRow" class="save-device-row" style="display:none">
+      ¿Guardar este dispositivo?
+      <button onclick="promptSaveDevice()">Guardar ★</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Mensajes</div>
+      <div class="messages-area" id="messagesArea">
+        <div style="text-align:center;color:var(--text3);font-size:0.75rem;font-family:var(--mono);padding:20px">
+          conexión establecida · enviá algo!
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chatInput" rows="1" placeholder="Texto o link..."
+          onkeydown="handleChatKey(event)"></textarea>
+        <button class="btn-send" onclick="sendText()">↑</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Enviar archivo</div>
+      <div class="drop-zone" id="dropZone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+        <input type="file" id="fileInput" onchange="handleFileSelect(event)" accept="*/*">
+        <div class="drop-zone-icon">📁</div>
+        <div class="drop-zone-text">Tocá para seleccionar o arrastrá aquí</div>
+        <div class="drop-zone-hint">.pdf .docx .pptx .jpg .mp4 · máx 100MB</div>
+      </div>
+    </div>
+
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-header">
+        <span class="progress-filename" id="progressName">archivo.pdf</span>
+        <span class="progress-percent" id="progressPercent">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <div class="progress-speed" id="progressSpeed"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Save device name -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>Guardar dispositivo</h3>
+    <p>Poné un nombre para recordar este dispositivo fácilmente.</p>
+    <input class="modal-input" id="modalNameInput" type="text" placeholder="Mi celular / Netbook..." maxlength="30">
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveDevice()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── State ──────────────────────────────────────────────────────────────────
+let peer = null;
+let conn = null;
+let myCode = null;
+let currentPeerCode = null;
+let isConnected = false;
+
+// File receiving state
+let receivingFile = null;
+let receivedChunks = [];
+let receivedSize = 0;
+
+// File sending state
+let sendStartTime = null;
+
+// LocalStorage key
+const LS_KEY = 'quickdrop_devices';
+
+// ─── Emoji avatars for devices ───────────────────────────────────────────────
+const AVATARS = ['💻','📱','🖥️','⌨️','🖱️','📡','🔌','💾','📲','🖨️'];
+
+function randomAvatar() {
+  return AVATARS[Math.floor(Math.random() * AVATARS.length)];
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+function startApp() {
+  setStatus('connecting', 'iniciando...');
+  renderDeviceList();
+  initPeer();
+}
+
+// Wait for PeerJS CDN script to load
+function waitForPeer() {
+  if (typeof Peer !== 'undefined') {
+    startApp();
+  } else {
+    setTimeout(waitForPeer, 100);
+  }
+}
+
+function generateCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function initPeer() {
+  const code = generateCode();
+  myCode = code;
+
+  peer = new Peer(code, {
+    debug: 0,
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    }
+  });
+
+  peer.on('open', (id) => {
+    myCode = id;
+    document.getElementById('myCode').textContent = id;
+    setStatus('online', 'listo');
+    showToast('Listo para conectar', 'success');
+  });
+
+  peer.on('connection', (connection) => {
+    handleIncomingConnection(connection);
+  });
+
+  peer.on('error', (err) => {
+    console.error('PeerJS error:', err);
+    if (err.type === 'peer-unavailable') {
+      showToast('Código inválido o dispositivo offline', 'error');
+      showScreen('screenHome');
+      setStatus('online', 'listo');
+    } else if (err.type === 'unavailable-id') {
+      // Code taken, regenerate
+      setTimeout(initPeer, 500);
+    } else {
+      showToast('Error de conexión', 'error');
+      setStatus('online', 'listo');
+    }
+  });
+
+  peer.on('disconnected', () => {
+    setStatus('connecting', 'reconectando...');
+    peer.reconnect();
+  });
+}
+
+// ─── Connection handling ─────────────────────────────────────────────────────
+function connectToPeer() {
+  const input = document.getElementById('connectInput').value.trim();
+  if (input.length !== 6 || isNaN(input)) {
+    showToast('Ingresá un código de 6 dígitos', 'error');
+    return;
+  }
+  if (input === myCode) {
+    showToast('No podés conectarte a vos mismo!', 'error');
+    return;
+  }
+
+  currentPeerCode = input;
+  setStatus('connecting', 'conectando...');
+  showScreen('screenWaiting');
+
+  const connection = peer.connect(input, { reliable: true });
+  setupConnection(connection);
+}
+
+function handleIncomingConnection(connection) {
+  if (isConnected) {
+    connection.close();
+    return;
+  }
+  currentPeerCode = connection.peer;
+  setupConnection(connection);
+}
+
+function setupConnection(connection) {
+  conn = connection;
+
+  conn.on('open', () => {
+    isConnected = true;
+    setStatus('online', 'conectado');
+    showConnectedScreen();
+    showToast('¡Conectado!', 'success');
+  });
+
+  conn.on('data', (data) => {
+    handleIncomingData(data);
+  });
+
+  conn.on('close', () => {
+    handleDisconnect();
+  });
+
+  conn.on('error', (err) => {
+    console.error('Connection error:', err);
+    handleDisconnect();
+  });
+}
+
+function showConnectedScreen() {
+  const devices = getDevices();
+  const saved = devices.find(d => d.code === currentPeerCode);
+  const name = saved ? saved.name : `Dispositivo ${currentPeerCode}`;
+
+  document.getElementById('connectedName').textContent = name;
+  document.getElementById('connectedCode').textContent = currentPeerCode;
+
+  // Show save prompt if not saved
+  const saveRow = document.getElementById('saveDeviceRow');
+  saveRow.style.display = saved ? 'none' : 'flex';
+
+  // Clear messages
+  document.getElementById('messagesArea').innerHTML = `
+    <div style="text-align:center;color:var(--text3);font-size:0.75rem;font-family:var(--mono);padding:20px">
+      conexión establecida · enviá algo!
+    </div>`;
+
+  showScreen('screenConnected');
+  document.getElementById('connectInput').value = '';
+}
+
+function handleDisconnect() {
+  isConnected = false;
+  conn = null;
+  currentPeerCode = null;
+  setStatus('online', 'listo');
+  showScreen('screenHome');
+  showToast('Conexión cerrada', '');
+  // Reset progress
+  document.getElementById('progressContainer').classList.remove('active');
+}
+
+function disconnect() {
+  if (conn) conn.close();
+  handleDisconnect();
+}
+
+function cancelConnect() {
+  showScreen('screenHome');
+  setStatus('online', 'listo');
+}
+
+// ─── Messaging ───────────────────────────────────────────────────────────────
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendText();
+  }
+}
+
+function sendText() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text || !conn) return;
+
+  conn.send({ type: 'text', content: text });
+  appendTextMessage(text, true);
+  input.value = '';
+  input.style.height = 'auto';
+}
+
+function appendTextMessage(text, isSent) {
+  const area = document.getElementById('messagesArea');
+  // Remove empty state
+  const emptyEl = area.querySelector('div[style*="conexión establecida"]');
+  if (emptyEl) emptyEl.remove();
+
+  const isLink = /^https?:\/\//i.test(text) || /^www\./i.test(text);
+  const div = document.createElement('div');
+  div.className = 'msg ' + (isSent ? 'msg-sent' : 'msg-received');
+
+  const time = new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+
+  if (isLink && !isSent) {
+    const url = text.startsWith('http') ? text : 'https://' + text;
+    div.innerHTML = `
+      <div style="word-break:break-all">${escapeHtml(text)}</div>
+      <div class="msg-link-actions">
+        <button class="btn-link-action btn-open" onclick="window.open('${escapeHtml(url)}','_blank')">🔗 Abrir</button>
+        <button class="btn-link-action btn-copy" onclick="copyToClipboard('${escapeHtml(url)}')">📋 Copiar</button>
+      </div>
+      <div class="msg-meta">${time}</div>`;
+  } else {
+    div.innerHTML = `<div>${escapeHtml(text)}</div><div class="msg-meta">${time}</div>`;
+  }
+
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+// ─── File sending ─────────────────────────────────────────────────────────────
+const CHUNK_SIZE = 64 * 1024; // 64KB chunks
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) sendFile(file);
+  e.target.value = '';
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+  document.getElementById('dropZone').classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) sendFile(file);
+}
+
+function sendFile(file) {
+  if (!conn || !isConnected) {
+    showToast('No hay conexión activa', 'error');
+    return;
+  }
+
+  const MAX = 100 * 1024 * 1024; // 100MB
+  if (file.size > MAX) {
+    showToast('Archivo demasiado grande (máx 100MB)', 'error');
+    return;
+  }
+
+  const fileId = Date.now().toString(36);
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+  // Send metadata
+  conn.send({
+    type: 'file-start',
+    fileId,
+    name: file.name,
+    size: file.size,
+    mimeType: file.type,
+    totalChunks
+  });
+
+  // Show progress
+  showProgress(file.name, 0);
+  sendStartTime = Date.now();
+
+  const reader = new FileReader();
+  let chunkIndex = 0;
+
+  function sendNextChunk() {
+    if (chunkIndex >= totalChunks) {
+      conn.send({ type: 'file-end', fileId });
+      appendFileSentMessage(file.name, file.size);
+      hideProgress();
+      return;
+    }
+
+    const start = chunkIndex * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, file.size);
+    const blob = file.slice(start, end);
+
+    const fr = new FileReader();
+    fr.onload = (e) => {
+      conn.send({
+        type: 'file-chunk',
+        fileId,
+        chunkIndex,
+        data: e.target.result
+      });
+
+      chunkIndex++;
+      const progress = Math.round((chunkIndex / totalChunks) * 100);
+      const elapsed = (Date.now() - sendStartTime) / 1000;
+      const bytesSent = chunkIndex * CHUNK_SIZE;
+      const speed = bytesSent / elapsed;
+      updateProgress(progress, formatBytes(speed) + '/s');
+
+      // Small delay to avoid overwhelming the channel
+      setTimeout(sendNextChunk, 10);
+    };
+    fr.readAsArrayBuffer(blob);
+  }
+
+  sendNextChunk();
+}
+
+// ─── File receiving ───────────────────────────────────────────────────────────
+let fileReceiving = {};
+
+function handleIncomingData(data) {
+  if (data.type === 'text') {
+    appendTextMessage(data.content, false);
+    return;
+  }
+
+  if (data.type === 'file-start') {
+    fileReceiving[data.fileId] = {
+      name: data.name,
+      size: data.size,
+      mimeType: data.mimeType,
+      totalChunks: data.totalChunks,
+      chunks: [],
+      received: 0,
+      startTime: Date.now()
+    };
+    showProgress(data.name, 0);
+    return;
+  }
+
+  if (data.type === 'file-chunk') {
+    const f = fileReceiving[data.fileId];
+    if (!f) return;
+    f.chunks[data.chunkIndex] = data.data;
+    f.received++;
+    const progress = Math.round((f.received / f.totalChunks) * 100);
+    const elapsed = (Date.now() - f.startTime) / 1000 || 0.001;
+    const bytesRecv = f.received * CHUNK_SIZE;
+    const speed = bytesRecv / elapsed;
+    updateProgress(progress, formatBytes(speed) + '/s');
+    return;
+  }
+
+  if (data.type === 'file-end') {
+    const f = fileReceiving[data.fileId];
+    if (!f) return;
+
+    // Reconstruct file
+    const blob = new Blob(f.chunks, { type: f.mimeType || 'application/octet-stream' });
+    appendFileReceivedMessage(f.name, f.size, blob);
+    hideProgress();
+    delete fileReceiving[data.fileId];
+    showToast('Archivo recibido: ' + f.name, 'success');
+    return;
+  }
+}
+
+function appendFileSentMessage(name, size) {
+  const area = document.getElementById('messagesArea');
+  const div = document.createElement('div');
+  div.className = 'msg-file sent';
+  div.innerHTML = `
+    <div class="file-icon">${getFileIcon(name)}</div>
+    <div class="file-info">
+      <div class="file-name">${escapeHtml(name)}</div>
+      <div class="file-size">${formatBytes(size)} · enviado</div>
+    </div>`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function appendFileReceivedMessage(name, size, blob) {
+  const area = document.getElementById('messagesArea');
+  const url = URL.createObjectURL(blob);
+  const div = document.createElement('div');
+  div.className = 'msg-file';
+  div.innerHTML = `
+    <div class="file-icon">${getFileIcon(name)}</div>
+    <div class="file-info">
+      <div class="file-name">${escapeHtml(name)}</div>
+      <div class="file-size">${formatBytes(size)}</div>
+    </div>
+    <a href="${url}" download="${escapeHtml(name)}" style="text-decoration:none">
+      <button class="btn-download">↓</button>
+    </a>`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+// ─── Progress UI ─────────────────────────────────────────────────────────────
+function showProgress(filename, percent) {
+  const c = document.getElementById('progressContainer');
+  c.classList.add('active');
+  document.getElementById('progressName').textContent = filename;
+  document.getElementById('progressPercent').textContent = percent + '%';
+  document.getElementById('progressBar').style.width = percent + '%';
+  document.getElementById('progressSpeed').textContent = '';
+}
+
+function updateProgress(percent, speed) {
+  document.getElementById('progressPercent').textContent = percent + '%';
+  document.getElementById('progressBar').style.width = percent + '%';
+  document.getElementById('progressSpeed').textContent = speed;
+}
+
+function hideProgress() {
+  setTimeout(() => {
+    document.getElementById('progressContainer').classList.remove('active');
+  }, 1500);
+}
+
+// ─── Device management ───────────────────────────────────────────────────────
+function getDevices() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveDevices(list) {
+  localStorage.setItem(LS_KEY, JSON.stringify(list));
+}
+
+function renderDeviceList() {
+  const list = getDevices();
+  const container = document.getElementById('deviceList');
+  const card = document.getElementById('frequentCard');
+
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty-state">sin dispositivos guardados aún</div>';
+    return;
+  }
+
+  container.innerHTML = '';
+  list.forEach((device, i) => {
+    const item = document.createElement('div');
+    item.className = 'device-item';
+    item.innerHTML = `
+      <div class="device-avatar">${device.avatar || '📱'}</div>
+      <div class="device-info">
+        <div class="device-name">${escapeHtml(device.name)}</div>
+        <div class="device-code">${device.code}</div>
+      </div>
+      <button class="device-remove" onclick="removeDevice(event, ${i})" title="Eliminar">✕</button>`;
+    item.addEventListener('click', () => {
+      document.getElementById('connectInput').value = device.code;
+      connectToPeer();
+    });
+    container.appendChild(item);
+  });
+}
+
+function promptSaveDevice() {
+  document.getElementById('modalNameInput').value = '';
+  document.getElementById('modalOverlay').classList.add('active');
+  setTimeout(() => document.getElementById('modalNameInput').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function saveDevice() {
+  const name = document.getElementById('modalNameInput').value.trim();
+  if (!name) { showToast('Ingresá un nombre', 'error'); return; }
+
+  const devices = getDevices();
+  const existing = devices.findIndex(d => d.code === currentPeerCode);
+
+  const device = {
+    code: currentPeerCode,
+    name,
+    avatar: randomAvatar(),
+    addedAt: Date.now()
+  };
+
+  if (existing >= 0) devices[existing] = device;
+  else devices.unshift(device);
+
+  saveDevices(devices);
+  renderDeviceList();
+  closeModal();
+
+  // Update displayed name
+  document.getElementById('connectedName').textContent = name;
+  document.getElementById('saveDeviceRow').style.display = 'none';
+
+  showToast(`"${name}" guardado ★`, 'success');
+}
+
+function removeDevice(e, index) {
+  e.stopPropagation();
+  const devices = getDevices();
+  devices.splice(index, 1);
+  saveDevices(devices);
+  renderDeviceList();
+  showToast('Dispositivo eliminado', '');
+}
+
+// ─── UI helpers ───────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function setStatus(type, text) {
+  const pill = document.getElementById('statusPill');
+  const span = document.getElementById('statusText');
+  pill.className = 'status-pill ' + type;
+  span.textContent = text;
+}
+
+let toastTimeout = null;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => { t.className = ''; }, 2800);
+}
+
+function copyMyCode() {
+  copyToClipboard(myCode);
+  showToast('Código copiado!', 'success');
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+  showToast('Copiado!', 'success');
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function getFileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const icons = {
+    pdf: '📄', doc: '📝', docx: '📝',
+    ppt: '📊', pptx: '📊', xls: '📈', xlsx: '📈',
+    jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', svg: '🖼️',
+    mp4: '🎥', mov: '🎥', avi: '🎥', mkv: '🎥',
+    mp3: '🎵', wav: '🎵', ogg: '🎵',
+    zip: '🗜️', rar: '🗜️', '7z': '🗜️',
+    txt: '📃', md: '📃',
+  };
+  return icons[ext] || '📎';
+}
+
+// ─── Modal enter key ──────────────────────────────────────────────────────────
+document.getElementById('modalNameInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') saveDevice();
+});
+
+// ─── Input: only numbers ─────────────────────────────────────────────────────
+document.getElementById('connectInput').addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+});
+
+document.getElementById('connectInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') connectToPeer();
+});
+</script>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js" onload="waitForPeer()" onerror="document.getElementById('statusText').textContent='error CDN'"></script>
+</body>
+</html>
