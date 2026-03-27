@@ -4,1158 +4,486 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Earlinki — P2P</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #0a0a0f;
-  --surface: #111118;
-  --surface2: #1a1a24;
-  --surface3: #22222f;
-  --border: #2a2a3a;
-  --accent: #00e5a0;
-  --accent2: #7c6bff;
-  --accent3: #ff6b6b;
-  --text: #f0f0f8;
-  --text2: #8888aa;
-  --text3: #44445a;
-  --mono: 'JetBrains Mono', monospace;
-  --sans: 'Syne', sans-serif;
-  --sidebar: 240px;
-  --radius: 12px;
-  --radius-sm: 8px;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
-/* Fijamos la altura dinámica para que no rebalse en móviles */
-html,body{height:100vh;overflow:hidden;margin:0} 
-@supports (height: 100dvh) { html,body { height: 100dvh; } }
-
-body{font-family:var(--sans);background:var(--bg);color:var(--text)}
-body::before{
-  content:'';position:fixed;inset:0;
-  background-image:linear-gradient(rgba(0,229,160,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,0.025) 1px,transparent 1px);
-  background-size:40px 40px;pointer-events:none;z-index:0;
-}
-
-/* ── Layout ──────────────────────────────────────────── */
-#layout{
-  position:relative;z-index:1;
-  display:grid;
-  grid-template-columns:var(--sidebar) minmax(0, 1fr);
-  grid-template-rows:auto minmax(0, 1fr);
-  height:100%;
-  max-width:1100px;
-  margin:0 auto;
-}
-
-/* ── Header ──────────────────────────────────────────── */
-#topbar{
-  grid-column:1/-1;
-  display:flex;align-items:center;gap:12px;
-  padding:12px 16px;
-  border-bottom:1px solid var(--border);
-  background:var(--surface);
-}
-.logo{font-size:1.3rem;font-weight:800;letter-spacing:-0.5px}
-.logo span{color:var(--accent)}
-.my-code-badge{
-  font-family:var(--mono);font-size:0.72rem;
-  background:var(--surface2);border:1px solid var(--border);
-  border-radius:100px;padding:4px 12px;
-  color:var(--text2);cursor:pointer;transition:all .2s;
-  display:flex;align-items:center;gap:6px;
-}
-.my-code-badge:hover{border-color:var(--accent);color:var(--accent)}
-.my-code-badge .code-val{color:var(--accent);font-weight:700;letter-spacing:3px}
-.status-pill{
-  font-family:var(--mono);font-size:0.68rem;
-  padding:4px 10px;border-radius:100px;border:1px solid var(--border);
-  color:var(--text2);display:flex;align-items:center;gap:5px;margin-left:auto;
-  transition:all .3s;
-}
-.status-pill .dot{width:6px;height:6px;border-radius:50%;background:var(--text3);transition:all .3s}
-.status-pill.online{border-color:var(--accent);color:var(--accent)}
-.status-pill.online .dot{background:var(--accent);box-shadow:0 0 6px var(--accent)}
-.status-pill.connecting{border-color:var(--accent2);color:var(--accent2)}
-.status-pill.connecting .dot{background:var(--accent2);animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-
-/* ── Sidebar ──────────────────────────────────────────── */
-#sidebar{
-  border-right:1px solid var(--border);
-  background:var(--surface);
-  display:flex;flex-direction:column;
-  overflow:hidden;
-}
-#sidebar-inner{
-  flex:1;overflow-y:auto;padding:12px 8px;
-  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
-  min-height:0; /* Fix para scroll en flex */
-}
-#sidebar-inner::-webkit-scrollbar{width:3px}
-#sidebar-inner::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-
-.sidebar-section-title{
-  font-family:var(--mono);font-size:0.6rem;color:var(--text3);
-  letter-spacing:2px;text-transform:uppercase;
-  padding:4px 8px 8px;
-}
-
-/* Tab item */
-.tab-item{
-  display:flex;align-items:center;gap:8px;
-  padding:9px 10px;border-radius:var(--radius-sm);
-  cursor:pointer;transition:all .15s;margin-bottom:2px;
-  position:relative;
-  -webkit-tap-highlight-color:transparent;
-}
-.tab-item:hover{background:var(--surface2)}
-.tab-item.active{background:var(--surface3);border:1px solid var(--border)}
-.tab-item.active::before{
-  content:'';position:absolute;left:0;top:20%;bottom:20%;
-  width:3px;background:var(--accent);border-radius:0 2px 2px 0;
-}
-.tab-avatar{
-  width:32px;height:32px;border-radius:50%;
-  background:var(--surface3);display:flex;align-items:center;justify-content:center;
-  font-size:0.9rem;border:1px solid var(--border);flex-shrink:0;
-  position:relative;
-}
-.tab-online-dot{
-  position:absolute;bottom:0;right:0;
-  width:8px;height:8px;border-radius:50%;
-  background:var(--accent);border:2px solid var(--surface);
-}
-.tab-info{flex:1;min-width:0}
-.tab-name{font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tab-code{font-family:var(--mono);font-size:0.62rem;color:var(--text3);letter-spacing:1px}
-.tab-unread{
-  background:var(--accent2);color:#fff;
-  font-size:0.6rem;font-weight:700;font-family:var(--mono);
-  min-width:16px;height:16px;border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-  padding:0 4px;flex-shrink:0;
-}
-.tab-close{
-  background:none;border:none;color:var(--text3);
-  cursor:pointer;padding:2px 4px;border-radius:4px;
-  font-size:0.7rem;transition:color .15s;flex-shrink:0;
-  display:none; /* Se muestra con el hover */
-}
-.tab-item:hover .tab-close{display:block}
-.tab-close:hover{color:var(--accent3)}
-
-/* Connect panel in sidebar */
-#connect-panel{padding:8px;flex-shrink:0;}
-.connect-panel-inner{
-  background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:12px;
-}
-.connect-row{display:flex;gap:6px}
-.code-input{
-  flex:1;background:var(--surface);border:1px solid var(--border);
-  border-radius:6px;padding:9px 10px;
-  font-family:var(--mono);font-size:1rem;font-weight:700;
-  color:var(--text);letter-spacing:4px;text-align:center;
-  outline:none;transition:border-color .2s;width:100%;
-  -webkit-appearance:none;
-}
-.code-input:focus{border-color:var(--accent)}
-.code-input::placeholder{color:var(--text3);letter-spacing:1px;font-size:0.75rem;font-weight:400}
-.btn-go{
-  background:var(--accent);color:#000;border:none;
-  border-radius:6px;padding:9px 12px;font-size:1rem;
-  cursor:pointer;transition:all .15s;font-weight:700;
-  -webkit-tap-highlight-color:transparent;
-}
-.btn-go:hover{background:#00ffb3}
-.btn-go:active{transform:scale(.95)}
-
-/* Saved devices */
-.saved-item{
-  display:flex;align-items:center;gap:8px;
-  padding:8px 10px;border-radius:var(--radius-sm);
-  cursor:pointer;transition:all .15s;
-  -webkit-tap-highlight-color:transparent;
-}
-.saved-item:hover{background:var(--surface2)}
-.saved-item:active{transform:scale(.98)}
-.saved-avatar{
-  width:28px;height:28px;border-radius:50%;
-  background:var(--surface3);display:flex;align-items:center;justify-content:center;
-  font-size:0.8rem;border:1px solid var(--border);flex-shrink:0;
-}
-.saved-info{flex:1;min-width:0}
-.saved-name{font-size:0.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.saved-code{font-family:var(--mono);font-size:0.6rem;color:var(--text3)}
-.saved-del{
-  background:none;border:none;color:var(--text3);
-  cursor:pointer;font-size:0.7rem;padding:3px;border-radius:3px;
-  transition:color .15s;display:none;
-}
-.saved-item:hover .saved-del{display:block}
-.saved-del:hover{color:var(--accent3)}
-.sidebar-empty{
-  font-family:var(--mono);font-size:0.68rem;
-  color:var(--text3);text-align:center;padding:16px 8px;
-}
-
-/* ── Main area ──────────────────────────────────────────── */
-#main{
-  display:flex;flex-direction:column;
-  overflow:hidden;
-  background:var(--bg);
-  min-height:0; /* Fix clave para layout */
-}
-
-/* Welcome */
-#welcome{
-  flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  gap:12px;color:var(--text3);
-  font-family:var(--mono);font-size:0.8rem;
-  text-align:center;padding:32px;
-  min-height:0;
-}
-#welcome .big{font-size:2.5rem;margin-bottom:8px}
-#welcome .hint{font-size:0.72rem;max-width:280px;line-height:1.7}
-
-/* Chat panel */
-.chat-panel{
-  flex:1;display:none;flex-direction:column;
-  overflow:hidden;animation:fadeIn .25s ease;
-  min-height:0; /* Asegura que no rebalse */
-}
-.chat-panel.active{display:flex}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-
-/* Messages */
-.messages-area{
-  flex:1;overflow-y:auto;
-  padding:16px;display:flex;flex-direction:column;gap:8px;
-  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
-  min-height:0; /* Clave para el scroll interno */
-}
-.messages-area::-webkit-scrollbar{width:4px}
-.messages-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-
-.msg{
-  max-width:82%;padding:10px 14px;border-radius:14px;
-  font-size:0.85rem;line-height:1.5;word-break:break-word;
-  animation:msgIn .2s ease;
-}
-@keyframes msgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.msg-sent{background:var(--accent);color:#000;align-self:flex-end;border-bottom-right-radius:4px}
-.msg-received{background:var(--surface2);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px}
-.msg-meta{font-size:0.62rem;opacity:.55;margin-top:4px;font-family:var(--mono)}
-.msg-sent .msg-meta{text-align:right}
-.msg-link-actions{display:flex;gap:6px;margin-top:8px}
-.btn-link-action{
-  font-family:var(--sans);font-size:0.7rem;font-weight:600;
-  padding:4px 10px;border-radius:6px;cursor:pointer;border:none;transition:all .15s;
-}
-.btn-open{background:rgba(0,0,0,0.25);color:#000}
-.btn-copy-link{background:rgba(0,0,0,0.15);color:#000}
-
-/* File messages */
-.msg-file{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 14px;
-  background:var(--surface2);border:1px solid var(--border);
-  border-radius:14px;border-bottom-left-radius:4px;
-  align-self:flex-start;max-width:82%;
-  animation:msgIn .2s ease;
-}
-.msg-file.sent{align-self:flex-end;border-bottom-left-radius:14px;border-bottom-right-radius:4px}
-.file-icon{font-size:1.5rem;flex-shrink:0}
-.file-info{flex:1;min-width:0}
-.file-name{font-weight:600;font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.file-size{font-family:var(--mono);font-size:0.65rem;color:var(--text2);margin-top:2px}
-.btn-dl{
-  background:var(--accent);color:#000;border:none;
-  border-radius:6px;padding:7px 12px;font-size:0.75rem;font-weight:700;
-  cursor:pointer;flex-shrink:0;transition:all .15s;font-family:var(--sans);
-}
-.btn-dl:hover{background:#00ffb3}
-
-/* Progress bar */
-.progress-box{
-  margin:0 16px 8px;padding:12px 14px;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--radius-sm);display:none;
-}
-.progress-box.active{display:block}
-.progress-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.progress-fname{font-size:0.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%}
-.progress-pct{font-family:var(--mono);font-size:0.78rem;color:var(--accent);font-weight:700}
-.progress-bg{height:5px;background:var(--surface3);border-radius:3px;overflow:hidden}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;transition:width .1s ease;width:0%}
-.progress-speed{font-family:var(--mono);font-size:0.62rem;color:var(--text3);margin-top:5px}
-.progress-mode{font-family:var(--mono);font-size:0.6rem;color:var(--accent2);margin-top:2px}
-
-/* Bottom bar */
-.bottom-bar{
-  padding:10px 16px;border-top:1px solid var(--border);
-  background:var(--surface);
-  display:flex;flex-direction:column;gap:8px;
-  flex-shrink:0; /* Fix para no ser empujado fuera en móviles */
-}
-.chat-row{display:flex;gap:8px;align-items:flex-end}
-.chat-input{
-  flex:1;background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:10px 12px;
-  font-family:var(--sans);font-size:0.85rem;color:var(--text);
-  outline:none;resize:none;transition:border-color .2s;
-  max-height:80px;
-  -webkit-appearance:none;
-}
-.chat-input:focus{border-color:var(--accent2)}
-.chat-input::placeholder{color:var(--text3)}
-.btn-send{
-  background:var(--accent2);color:#fff;border:none;
-  border-radius:var(--radius-sm);padding:10px 14px;
-  font-size:1rem;cursor:pointer;transition:all .15s;
-  -webkit-tap-highlight-color:transparent;flex-shrink:0;
-  align-self:flex-end;
-}
-.btn-send:hover{background:#9d8fff}
-.btn-send:active{transform:scale(.95)}
-
-/* Drop zone */
-.drop-zone{
-  border:1.5px dashed var(--border);border-radius:var(--radius-sm);
-  padding:10px 16px;text-align:center;cursor:pointer;
-  transition:all .2s;position:relative;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;gap:10px;
-}
-.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(0,229,160,0.04)}
-.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
-.drop-zone-icon{font-size:1.2rem}
-.drop-zone-text{font-size:0.78rem;color:var(--text2)}
-.drop-zone-hint{font-size:0.65rem;color:var(--text3);font-family:var(--mono)}
-
-/* Connected banner */
-.chat-header{
-  padding:10px 16px;border-bottom:1px solid var(--border);
-  background:var(--surface);display:flex;align-items:center;gap:10px;
-  flex-shrink:0;
-}
-.chat-header-name{font-weight:700;font-size:0.95rem}
-.chat-header-code{font-family:var(--mono);font-size:0.68rem;color:var(--text2);letter-spacing:2px}
-.btn-save-device{
-  margin-left:auto;font-family:var(--mono);font-size:0.68rem;
-  background:none;border:1px solid var(--border);color:var(--text3);
-  padding:4px 10px;border-radius:4px;cursor:pointer;transition:all .15s;
-}
-.btn-save-device:hover{color:var(--accent);border-color:var(--accent)}
-.btn-disconnect{
-  background:none;border:none;color:var(--text3);
-  cursor:pointer;font-size:1rem;padding:4px;border-radius:4px;
-  transition:color .15s;
-}
-.btn-disconnect:hover{color:var(--accent3)}
-
-/* ── Modal ──────────────────────────────────────────── */
-.modal-overlay{
-  display:none;position:fixed;inset:0;
-  background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
-  z-index:100;align-items:center;justify-content:center;padding:16px;
-}
-.modal-overlay.active{display:flex}
-.modal{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--radius);padding:24px;width:100%;max-width:320px;
-  animation:modalIn .25s cubic-bezier(.34,1.56,.64,1);
-}
-@keyframes modalIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
-.modal h3{font-size:.95rem;margin-bottom:6px}
-.modal p{font-size:.78rem;color:var(--text2);margin-bottom:14px;line-height:1.5}
-.modal-input{
-  width:100%;background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:11px 13px;
-  font-family:var(--sans);font-size:.88rem;color:var(--text);
-  outline:none;margin-bottom:12px;-webkit-appearance:none;
-}
-.modal-input:focus{border-color:var(--accent)}
-.modal-btns{display:flex;gap:8px}
-.modal-btns .btn{
-  flex:1;font-family:var(--sans);font-size:.85rem;font-weight:600;
-  border:none;cursor:pointer;border-radius:var(--radius-sm);
-  padding:11px 16px;transition:all .15s;
-}
-.btn-modal-cancel{background:var(--surface2);color:var(--text);border:1px solid var(--border)!important}
-.btn-modal-ok{background:var(--accent);color:#000}
-.btn-modal-ok:hover{background:#00ffb3}
-
-/* ── Toast ──────────────────────────────────────────── */
-#toast{
-  position:fixed;bottom:20px;left:50%;
-  transform:translateX(-50%) translateY(80px);
-  background:var(--surface2);border:1px solid var(--border);
-  border-radius:100px;padding:9px 18px;
-  font-size:.78rem;font-family:var(--mono);color:var(--text);
-  z-index:1000;transition:transform .3s cubic-bezier(.34,1.56,.64,1);
-  white-space:nowrap;pointer-events:none;
-}
-#toast.show{transform:translateX(-50%) translateY(0)}
-#toast.success{border-color:var(--accent);color:var(--accent)}
-#toast.error{border-color:var(--accent3);color:var(--accent3)}
-
-/* ── Mobile layout ──────────────────────────────────── */
-@media(max-width:600px){
-  #layout{
-    grid-template-columns:1fr;
-    grid-template-rows:auto auto minmax(0, 1fr); /* Topbar, Sidebar, Chat */
+  :root {
+    --bg: #0a0a0f; --surface: #111118; --surface2: #1a1a24; --surface3: #22222f;
+    --border: #2a2a3a; --accent: #00e5a0; --accent2: #7c6bff; --danger: #ff6b6b;
+    --text: #f0f0f8; --text2: #8888aa; --mono: 'JetBrains Mono', monospace; --sans: 'Syne', sans-serif;
   }
-  #sidebar{
-    border-right:none;border-bottom:1px solid var(--border);
-    max-height:35vh; /* Ocupa hasta un 35% de pantalla máximo */
-  }
-  #sidebar-inner{padding:8px}
-  .tab-item{padding:7px 8px}
-  #connect-panel{padding:6px}
-}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100vh; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); }
+  @supports (height: 100dvh) { html, body { height: 100dvh; } }
+  
+  /* Layout */
+  #app { display: flex; flex-direction: column; height: 100%; max-width: 1000px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  
+  /* Topbar */
+  header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .logo { font-size: 1.2rem; font-weight: 700; }
+  .logo span { color: var(--accent); }
+  .my-id-box { background: var(--surface2); padding: 4px 12px; border-radius: 20px; font-family: var(--mono); font-size: 0.8rem; border: 1px solid var(--border); display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  .my-id-box span { color: var(--accent); font-weight: bold; letter-spacing: 2px; }
+  
+  /* Main Container */
+  main { display: flex; flex: 1; min-height: 0; }
+  
+  /* Sidebar */
+  #sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  .connect-box { padding: 12px; border-bottom: 1px solid var(--border); }
+  .connect-box input { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 6px; text-align: center; font-family: var(--mono); letter-spacing: 2px; margin-bottom: 8px; outline: none; }
+  .connect-box input:focus { border-color: var(--accent); }
+  .connect-box button { width: 100%; background: var(--accent); color: #000; border: none; padding: 10px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+  
+  .tabs-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .tab { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--surface2); border-radius: 6px; margin-bottom: 6px; cursor: pointer; border: 1px solid transparent; }
+  .tab.active { border-color: var(--accent); background: var(--surface3); }
+  .tab-name { font-size: 0.85rem; font-weight: 600; font-family: var(--mono); }
+  .tab-close { background: none; border: none; color: var(--text2); cursor: pointer; padding: 4px; }
+  .tab-close:hover { color: var(--danger); }
+  .unread-badge { background: var(--accent2); color: #fff; font-size: 0.6rem; padding: 2px 6px; border-radius: 10px; font-weight: bold; display: none; }
+  .tab.has-unread .unread-badge { display: inline-block; }
 
-/* Scrollbar global */
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+  /* Chat Area */
+  #chat-container { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+  #welcome-screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); z-index: 10; }
+  #welcome-screen h2 { color: var(--text2); font-weight: 400; font-size: 1rem; }
+  
+  .messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  
+  /* Message Bubbles */
+  .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 0.9rem; line-height: 1.4; word-wrap: break-word; }
+  .msg.me { background: var(--accent); color: #000; align-self: flex-end; border-bottom-right-radius: 2px; }
+  .msg.them { background: var(--surface2); align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid var(--border); }
+  .msg-time { font-size: 0.65rem; opacity: 0.6; margin-top: 4px; text-align: right; font-family: var(--mono); }
+  
+  /* File Transfer UI */
+  .file-box { display: flex; align-items: center; gap: 12px; }
+  .file-icon { font-size: 1.5rem; }
+  .file-info { display: flex; flex-direction: column; }
+  .file-name { font-weight: 600; font-size: 0.85rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-size { font-size: 0.7rem; opacity: 0.8; font-family: var(--mono); }
+  .dl-btn { background: rgba(0,0,0,0.2); border: none; color: inherit; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 6px; }
+  
+  /* Progress Bar */
+  .progress-container { width: 100%; height: 6px; background: rgba(0,0,0,0.2); border-radius: 3px; margin-top: 8px; overflow: hidden; display: none; }
+  .progress-fill { height: 100%; background: #000; width: 0%; transition: width 0.1s; }
+  .msg.them .progress-fill { background: var(--accent); }
+
+  /* Input Area */
+  .input-area { padding: 12px; background: var(--surface); border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+  .attach-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+  .chat-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 8px; outline: none; font-family: var(--sans); }
+  .chat-input:focus { border-color: var(--accent2); }
+  .send-btn { background: var(--accent2); color: #fff; border: none; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+  /* Mobile Responsive */
+  @media (max-width: 768px) {
+    main { flex-direction: column; }
+    #sidebar { width: 100%; height: auto; max-height: 200px; border-right: none; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .connect-box { display: flex; gap: 8px; padding: 8px; }
+    .connect-box input { margin-bottom: 0; }
+    .connect-box button { width: auto; padding: 0 20px; }
+    .tabs-list { display: flex; overflow-x: auto; overflow-y: hidden; padding: 8px; gap: 8px; }
+    .tab { margin-bottom: 0; flex-shrink: 0; }
+  }
+
+  /* Toasts */
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface2); border: 1px solid var(--accent); color: var(--text); padding: 8px 16px; border-radius: 20px; font-family: var(--mono); font-size: 0.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 1000; }
+  #toast.show { opacity: 1; }
 </style>
 </head>
 <body>
-<div id="layout">
 
-  <div id="topbar">
+<div id="app">
+  <header>
     <div class="logo">Earl<span>inki</span></div>
-    <div class="my-code-badge" onclick="copyMyCode()" title="Copiar mi código">
-      Mi código: <span class="code-val" id="myCodeVal">——</span> 📋
-    </div>
-    <div class="status-pill" id="statusPill">
-      <div class="dot"></div><span id="statusText">iniciando</span>
-    </div>
-  </div>
+    <div class="my-id-box" onclick="copyMyId()">Mi ID: <span id="my-id-display">---</span></div>
+  </header>
 
-  <div id="sidebar">
-    <div id="sidebar-inner">
-      <div class="sidebar-section-title">Activos</div>
-      <div id="tabsList">
-        <div class="sidebar-empty" id="noTabs">sin conexiones</div>
+  <main>
+    <aside id="sidebar">
+      <div class="connect-box">
+        <input type="text" id="peer-id-input" placeholder="ID de destino (6 núm)" maxlength="6" inputmode="numeric">
+        <button onclick="connectToPeer()">Unir</button>
       </div>
-
-      <div style="height:12px"></div>
-      <div class="sidebar-section-title">Frecuentes</div>
-      <div id="savedList">
-        <div class="sidebar-empty" id="noSaved">sin guardados</div>
-      </div>
-    </div>
-
-    <div id="connect-panel">
-      <div class="connect-panel-inner">
-        <div class="connect-row">
-          <input class="code-input" id="connectInput" type="text"
-            inputmode="numeric" maxlength="6" placeholder="código 6 dígitos"
-            autocomplete="off" spellcheck="false">
-          <button class="btn-go" onclick="connectToPeer()" title="Conectar">→</button>
+      <div class="tabs-list" id="tabs-container">
         </div>
+    </aside>
+
+    <section id="chat-container">
+      <div id="welcome-screen">
+        <h2>No hay chats activos.</h2>
+        <p style="font-size:0.8rem; color:var(--text2); margin-top:8px;">Conectate a un ID para empezar.</p>
       </div>
-    </div>
-  </div>
+      
+      <div class="messages" id="messages-container">
+        </div>
 
-  <div id="main">
-    <div id="welcome">
-      <div class="big">⚡</div>
-      <div style="font-size:1rem;font-weight:700;color:var(--text2)">Earlinki</div>
-      <div class="hint">Ingresá un código de 6 dígitos o tocá un dispositivo frecuente para conectarte.</div>
-    </div>
-
-    </div>
+      <div class="input-area" id="input-area" style="display: none;">
+        <input type="file" id="file-input" style="display: none;" onchange="handleFileSelect(event)">
+        <button class="attach-btn" onclick="document.getElementById('file-input').click()">📁</button>
+        <input type="text" class="chat-input" id="msg-input" placeholder="Escribí un mensaje..." onkeypress="if(event.key==='Enter') sendTextMessage()">
+        <button class="send-btn" onclick="sendTextMessage()">➔</button>
+      </div>
+    </section>
+  </main>
 </div>
 
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <h3>Guardar dispositivo</h3>
-    <p>Dale un nombre para encontrarlo rápido la próxima vez.</p>
-    <input class="modal-input" id="modalNameInput" type="text" placeholder="Mi celular / Netbook..." maxlength="30">
-    <div class="modal-btns">
-      <button class="btn btn-modal-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-modal-ok" onclick="saveDeviceConfirm()">Guardar ★</button>
-    </div>
-  </div>
-</div>
+<div id="toast">Notificación</div>
 
-<div id="toast"></div>
-
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script>
-// ═══════════════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════════════
-let peer = null;
-let myCode = null;
-
-// connections map: peerId → { conn, messages[], fileReceiving{}, progressEl, unread }
-const sessions = {};
-
-let activeTab = null; 
-let pendingSaveCode = null; 
-
-const LS_KEY = 'earlinki_v2_devices';
-const AVATARS = ['💻','📱','🖥️','⌨️','🖱️','📡','🔌','💾','📲','🖨️'];
-
-// Chunking thresholds
-const SMALL_CHUNK  = 64  * 1024;        
-const LARGE_CHUNK  = 256 * 1024;        
-const SMALL_LIMIT  = 50  * 1024 * 1024; 
-
-// ═══════════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════════
-function startApp() {
-  setStatus('connecting','iniciando...');
-  renderSavedList();
-  initPeer();
-}
-
-function waitForPeer() {
-  if (typeof Peer !== 'undefined') startApp();
-  else setTimeout(waitForPeer, 100);
-}
-
-function generateCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-function initPeer() {
-  const code = generateCode();
-  peer = new Peer(code, {
-    debug: 0,
-    config: { iceServers:[
-      {urls:'stun:stun.l.google.com:19302'},
-      {urls:'stun:stun1.l.google.com:19302'}
-    ]}
-  });
-
-  peer.on('open', id => {
-    myCode = id;
-    document.getElementById('myCodeVal').textContent = id;
-    setStatus('online','listo');
-    showToast('Listo para conectar','success');
-  });
-
-  peer.on('connection', conn => handleIncoming(conn));
-
-  peer.on('error', err => {
-    if (err.type === 'peer-unavailable') {
-      showToast('Código inválido o dispositivo offline','error');
-      setStatus('online','listo');
-    } else if (err.type === 'unavailable-id') {
-      setTimeout(initPeer, 600);
-    } else {
-      console.warn('PeerJS error:', err.type, err.message);
-    }
-  });
-
-  peer.on('disconnected', () => {
-    setStatus('connecting','reconectando...');
-    peer.reconnect();
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CONNECTIONS
-// ═══════════════════════════════════════════════════════════════
-function connectToPeer() {
-  const input = document.getElementById('connectInput');
-  const code  = input.value.trim();
-  if (code.length !== 6 || isNaN(code)) { showToast('Ingresá un código de 6 dígitos','error'); return; }
-  if (code === myCode)                   { showToast('No podés conectarte a vos mismo!','error'); return; }
-  if (sessions[code])                    { switchTab(code); input.value=''; return; }
-
-  setStatus('connecting','conectando...');
-  const conn = peer.connect(code, { reliable:true, serialization:'binary' });
-  setupSession(conn);
-  input.value = '';
-}
-
-function handleIncoming(conn) {
-  if (sessions[conn.peer]) { 
-    // Si ya estamos conectados y la conexión está viva, no hacemos nada.
-    if (sessions[conn.peer].conn.open) {
-      return;
-    } else {
-      // Si la conexión anterior estaba muerta, la cerramos para renovarla
-      closeSession(conn.peer);
-    }
-  }
-  setupSession(conn);
-}
-
-function setupSession(conn) {
-  const pid = conn.peer;
-
-  sessions[pid] = {
-    conn,
-    messages: [],
-    fileReceiving: {},
-    unread: 0,
-    progressEl: null,
-    startTime: null
-  };
-
-  createChatPanel(pid);
-  renderTabsList();
-
-  const onReady = () => {
-    setStatus('online','listo');
-    // Si no tengo ninguna pestaña abierta, abro esta. 
-    // Si ya estoy hablando con alguien, solo notifico.
-    if (!activeTab) {
-      switchTab(pid);
-    } else {
-      sessions[pid].unread++;
-      renderTabsList();
-    }
-    showToast('¡Conectado a ' + pid + '!','success');
-  };
-
-  // Fix clave para PeerJS: a veces la conexión ya llega abierta
-  if (conn.open) {
-    onReady();
-  } else {
-    conn.on('open', onReady);
-  }
-
-  conn.on('data', data => handleData(pid, data));
-  conn.on('close', () => closeSession(pid));
-  conn.on('error', err => { console.warn(err); closeSession(pid); });
-}
-
-function closeSession(pid) {
-  if (!sessions[pid]) return;
-  delete sessions[pid];
-  const panel = document.getElementById('panel-' + pid);
-  if (panel) panel.remove();
-  renderTabsList();
+  // ==========================================
+  // ESTADO GLOBAL (Lógica reconstruida)
+  // ==========================================
+  let peer = null;
+  let myId = Math.floor(100000 + Math.random() * 900000).toString();
   
-  if (activeTab === pid) {
-    activeTab = null;
-    const remaining = Object.keys(sessions);
-    if (remaining.length) switchTab(remaining[remaining.length-1]);
-    else document.getElementById('welcome').style.display = 'flex';
-  }
-  showToast('Conexión cerrada','');
-  if (Object.keys(sessions).length === 0) setStatus('online','listo');
-}
+  // connections almacena: { peerId: { conn, messages: [], unread: 0 } }
+  const connections = {};
+  let activePeerId = null;
 
-// ═══════════════════════════════════════════════════════════════
-// PANEL UI
-// ═══════════════════════════════════════════════════════════════
-function createChatPanel(pid) {
-  const saved = getSavedDevice(pid);
-  const name  = saved ? saved.name : 'Dispositivo ' + pid;
+  // fileTransfers almacena estado de envío/recepción para el sistema "Ping-Pong"
+  const fileTransfers = {}; 
+  const CHUNK_SIZE = 256 * 1024; // 256KB por pedazo (Estable para WebRTC)
 
-  const panel = document.createElement('div');
-  panel.className = 'chat-panel';
-  panel.id = 'panel-' + pid;
+  // ==========================================
+  // INICIALIZACIÓN PEERJS
+  // ==========================================
+  function init() {
+    document.getElementById('my-id-display').innerText = myId;
+    
+    peer = new Peer(myId, {
+      config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] }
+    });
 
-  panel.innerHTML = `
-    <div class="chat-header">
-      <div style="font-size:1.3rem">${saved ? saved.avatar : '⚡'}</div>
-      <div>
-        <div class="chat-header-name" id="hname-${pid}">${escHtml(name)}</div>
-        <div class="chat-header-code">${pid}</div>
-      </div>
-      <button class="btn-save-device" id="savebtn-${pid}" onclick="promptSave('${pid}')"
-        style="${saved?'display:none':''}">Guardar ★</button>
-      <button class="btn-disconnect" onclick="disconnectPeer('${pid}')" title="Desconectar">✕</button>
-    </div>
-    <div class="messages-area" id="msgs-${pid}">
-      <div style="text-align:center;color:var(--text3);font-size:.72rem;font-family:var(--mono);padding:24px">
-        conexión establecida · enviá algo ⚡
-      </div>
-    </div>
-    <div class="progress-box" id="prog-${pid}">
-      <div class="progress-top">
-        <span class="progress-fname" id="prog-name-${pid}"></span>
-        <span class="progress-pct" id="prog-pct-${pid}">0%</span>
-      </div>
-      <div class="progress-bg"><div class="progress-fill" id="prog-bar-${pid}"></div></div>
-      <div class="progress-speed" id="prog-speed-${pid}"></div>
-      <div class="progress-mode" id="prog-mode-${pid}"></div>
-    </div>
-    <div class="bottom-bar">
-      <div class="drop-zone" id="dz-${pid}"
-        ondragover="dzDragOver(event,'${pid}')"
-        ondragleave="dzDragLeave('${pid}')"
-        ondrop="dzDrop(event,'${pid}')">
-        <input type="file" onchange="fileSelected(event,'${pid}')">
-        <span class="drop-zone-icon">📁</span>
-        <div>
-          <div class="drop-zone-text">Seleccioná o arrastrá un archivo</div>
-          <div class="drop-zone-hint">sin límite de tamaño · optimizado ≥50MB</div>
-        </div>
-      </div>
-      <div class="chat-row">
-        <textarea class="chat-input" id="chatinput-${pid}" rows="1"
-          placeholder="Texto o link..."
-          onkeydown="chatKey(event,'${pid}')"></textarea>
-        <button class="btn-send" onclick="sendText('${pid}')">↑</button>
-      </div>
-    </div>
-  `;
+    peer.on('open', id => showToast('Sistema en línea ✅'));
+    
+    // Recibiendo una conexión entrante
+    peer.on('connection', conn => {
+      setupConnection(conn);
+    });
 
-  document.getElementById('main').appendChild(panel);
-  sessions[pid].progressEl = panel.querySelector('.progress-box');
-}
-
-function switchTab(pid) {
-  document.querySelectorAll('.chat-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('welcome').style.display = 'none';
-
-  const panel = document.getElementById('panel-' + pid);
-  if (panel) panel.classList.add('active');
-
-  activeTab = pid;
-  if (sessions[pid]) {
-    sessions[pid].unread = 0;
-    renderTabsList();
-  }
-}
-
-function disconnectPeer(pid) {
-  if (sessions[pid]) sessions[pid].conn.close();
-  closeSession(pid);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// MESSAGING
-// ═══════════════════════════════════════════════════════════════
-function chatKey(e, pid) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(pid); }
-}
-
-function sendText(pid) {
-  const el   = document.getElementById('chatinput-' + pid);
-  const text = el.value.trim();
-  if (!text || !sessions[pid]) return;
-  sessions[pid].conn.send({ type:'text', content:text });
-  appendText(pid, text, true);
-  el.value = '';
-}
-
-function handleData(pid, data) {
-  if (!sessions[pid]) return;
-
-  if (data.type === 'text') {
-    appendText(pid, data.content, false);
-    if (activeTab !== pid) { sessions[pid].unread++; renderTabsList(); }
-    return;
+    peer.on('error', err => {
+      showToast('Error de conexión ❌');
+      console.error(err);
+    });
   }
 
-  if (data.type === 'file-start') {
-    sessions[pid].fileReceiving[data.fileId] = {
-      name: data.name, size: data.size, mimeType: data.mimeType,
-      totalChunks: data.totalChunks, chunks: [],
-      received: 0, startTime: Date.now()
-    };
-    showProgress(pid, data.name, 0, data.size > SMALL_LIMIT ? 'chunking estándar' : 'transferencia rápida');
-    if (activeTab !== pid) { sessions[pid].unread++; renderTabsList(); }
-    return;
-  }
-
-  if (data.type === 'file-chunk') {
-    const f = sessions[pid].fileReceiving[data.fileId];
-    if (!f) return;
-    f.chunks[data.chunkIndex] = data.data;
-    f.received++;
-    const pct   = Math.round(f.received / f.totalChunks * 100);
-    const elapsed = (Date.now() - f.startTime) / 1000 || .001;
-    const speed   = (f.received * data.data.byteLength) / elapsed;
-    updateProgress(pid, pct, formatBytes(speed) + '/s');
-    return;
-  }
-
-  if (data.type === 'file-end') {
-    const f = sessions[pid].fileReceiving[data.fileId];
-    if (!f) return;
-    const blob = new Blob(f.chunks, { type: f.mimeType || 'application/octet-stream' });
-    appendFileReceived(pid, f.name, f.size, blob);
-    hideProgress(pid);
-    delete sessions[pid].fileReceiving[data.fileId];
-    showToast('Archivo recibido: ' + f.name, 'success');
-    return;
-  }
-}
-
-function appendText(pid, text, sent) {
-  const area = document.getElementById('msgs-' + pid);
-  if (!area) return;
-  clearEmpty(area);
-
-  const isLink = /^https?:\/\//i.test(text) || /^www\./i.test(text);
-  const div    = document.createElement('div');
-  div.className = 'msg ' + (sent ? 'msg-sent' : 'msg-received');
-  const time   = new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
-
-  if (isLink && !sent) {
-    const url = text.startsWith('http') ? text : 'https://' + text;
-    div.innerHTML = `<div style="word-break:break-all">${escHtml(text)}</div>
-      <div class="msg-link-actions">
-        <button class="btn-link-action btn-open" onclick="window.open('${escHtml(url)}','_blank')">🔗 Abrir</button>
-        <button class="btn-link-action btn-copy-link" onclick="copyClip('${escHtml(url)}')">📋 Copiar</button>
-      </div>
-      <div class="msg-meta">${time}</div>`;
-  } else {
-    div.innerHTML = `<div>${escHtml(text)}</div><div class="msg-meta">${time}</div>`;
-  }
-
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// FILE SENDING — dynamic chunking
-// ═══════════════════════════════════════════════════════════════
-function fileSelected(e, pid) { const f = e.target.files[0]; if(f) sendFile(pid,f); e.target.value=''; }
-function dzDragOver(e,pid)   { e.preventDefault(); document.getElementById('dz-'+pid).classList.add('drag-over'); }
-function dzDragLeave(pid)    { document.getElementById('dz-'+pid).classList.remove('drag-over'); }
-function dzDrop(e,pid)       { e.preventDefault(); dzDragLeave(pid); const f=e.dataTransfer.files[0]; if(f) sendFile(pid,f); }
-
-async function sendFile(pid, file) {
-  const sess = sessions[pid];
-  if (!sess) { showToast('No hay conexión activa','error'); return; }
-
-  let chunkSize, modeLabel;
-  if (file.size <= SMALL_LIMIT) {
-    chunkSize = SMALL_CHUNK;   
-    modeLabel = 'transferencia rápida';
-  } else {
-    chunkSize = LARGE_CHUNK;   
-    modeLabel = 'chunking estándar';
-  }
-
-  const fileId     = Date.now().toString(36) + Math.random().toString(36).slice(2);
-  const totalChunks = Math.ceil(file.size / chunkSize);
-
-  sess.conn.send({ type:'file-start', fileId, name:file.name, size:file.size, mimeType:file.type, totalChunks });
-  showProgress(pid, file.name, 0, modeLabel);
-
-  const sendStart = Date.now();
-  let chunkIdx    = 0;
-
-  async function sendLoop() {
-    while (chunkIdx < totalChunks) {
-      const start  = chunkIdx * chunkSize;
-      const end    = Math.min(start + chunkSize, file.size);
-      const slice  = file.slice(start, end);
-      const buffer = await slice.arrayBuffer();
-
-      sess.conn.send({ type:'file-chunk', fileId, chunkIndex:chunkIdx, data:buffer });
-
-      chunkIdx++;
-      const pct     = Math.round(chunkIdx / totalChunks * 100);
-      const elapsed = (Date.now() - sendStart) / 1000 || .001;
-      const speed   = (chunkIdx * chunkSize) / elapsed;
-      updateProgress(pid, pct, formatBytes(speed) + '/s');
-
-      const yieldEvery = file.size > SMALL_LIMIT ? 4 : 16;
-      if (chunkIdx % yieldEvery === 0) await sleep(0);
+  // ==========================================
+  // GESTIÓN DE CONEXIONES
+  // ==========================================
+  function connectToPeer() {
+    const targetId = document.getElementById('peer-id-input').value.trim();
+    if (targetId.length !== 6 || isNaN(targetId)) return showToast('El ID debe tener 6 números');
+    if (targetId === myId) return showToast('No podés conectarte a vos mismo');
+    
+    document.getElementById('peer-id-input').value = '';
+    
+    // Si ya existe, solo lo enfocamos
+    if (connections[targetId] && connections[targetId].conn.open) {
+      return openChat(targetId);
     }
 
-    sess.conn.send({ type:'file-end', fileId });
-    appendFileSent(pid, file.name, file.size);
-    hideProgress(pid);
+    showToast('Conectando...');
+    const conn = peer.connect(targetId, { reliable: true });
+    setupConnection(conn);
   }
 
-  sendLoop().catch(err => {
-    console.error('sendFile error:', err);
-    showToast('Error al enviar el archivo','error');
-    hideProgress(pid);
-  });
-}
+  function setupConnection(conn) {
+    const pid = conn.peer;
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+    // Prevenir conexiones duplicadas "fantasma"
+    if (connections[pid]) {
+      if (connections[pid].conn.open) return; // Ya está bien
+    }
 
-function appendFileSent(pid, name, size) {
-  const area = document.getElementById('msgs-' + pid);
-  if (!area) return;
-  const div = document.createElement('div');
-  div.className = 'msg-file sent';
-  div.innerHTML = `<div class="file-icon">${fileIcon(name)}</div>
-    <div class="file-info">
-      <div class="file-name">${escHtml(name)}</div>
-      <div class="file-size">${formatBytes(size)} · enviado ✓</div>
-    </div>`;
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
-}
+    conn.on('open', () => {
+      showToast(`Conectado a ${pid}`);
+      connections[pid] = { conn: conn, messages: [], unread: 0 };
+      renderTabs();
+      openChat(pid); // Abrir automáticamente al conectar
+    });
 
-function appendFileReceived(pid, name, size, blob) {
-  const area = document.getElementById('msgs-' + pid);
-  if (!area) return;
-  const url = URL.createObjectURL(blob);
-  const div = document.createElement('div');
-  div.className = 'msg-file';
-  div.innerHTML = `<div class="file-icon">${fileIcon(name)}</div>
-    <div class="file-info">
-      <div class="file-name">${escHtml(name)}</div>
-      <div class="file-size">${formatBytes(size)}</div>
-    </div>
-    <a href="${url}" download="${escHtml(name)}" style="text-decoration:none">
-      <button class="btn-dl">↓</button>
-    </a>`;
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PROGRESS
-// ═══════════════════════════════════════════════════════════════
-function showProgress(pid, name, pct, mode) {
-  const el = document.getElementById('prog-'+pid);
-  if (!el) return;
-  el.classList.add('active');
-  document.getElementById('prog-name-'+pid).textContent = name;
-  document.getElementById('prog-pct-'+pid).textContent  = pct + '%';
-  document.getElementById('prog-bar-'+pid).style.width  = pct + '%';
-  document.getElementById('prog-speed-'+pid).textContent = '';
-  document.getElementById('prog-mode-'+pid).textContent  = mode || '';
-}
-
-function updateProgress(pid, pct, speed) {
-  document.getElementById('prog-pct-'+pid).textContent   = pct + '%';
-  document.getElementById('prog-bar-'+pid).style.width   = pct + '%';
-  document.getElementById('prog-speed-'+pid).textContent = speed;
-}
-
-function hideProgress(pid) {
-  setTimeout(() => {
-    const el = document.getElementById('prog-'+pid);
-    if (el) el.classList.remove('active');
-  }, 2000);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// TABS SIDEBAR
-// ═══════════════════════════════════════════════════════════════
-function renderTabsList() {
-  const container = document.getElementById('tabsList');
-  const noTabs    = document.getElementById('noTabs');
-  const pids      = Object.keys(sessions);
-
-  if (pids.length === 0) {
-    noTabs.style.display = 'block';
-    container.innerHTML  = '';
-    container.appendChild(noTabs);
-    return;
+    conn.on('data', data => handleDataReceipt(pid, data));
+    
+    conn.on('close', () => removeConnection(pid));
+    conn.on('error', () => removeConnection(pid));
   }
 
-  noTabs.style.display = 'none';
-  container.innerHTML  = '';
+  function removeConnection(pid) {
+    if (connections[pid]) delete connections[pid];
+    if (activePeerId === pid) {
+      activePeerId = null;
+      document.getElementById('welcome-screen').style.display = 'flex';
+      document.getElementById('input-area').style.display = 'none';
+      document.getElementById('messages-container').innerHTML = '';
+    }
+    renderTabs();
+    showToast(`Conexión con ${pid} cerrada`);
+  }
 
-  pids.forEach(pid => {
-    const sess  = sessions[pid];
-    const saved = getSavedDevice(pid);
-    const name  = saved ? saved.name : 'Dispositivo ' + pid;
-    const av    = saved ? saved.avatar : '⚡';
+  // ==========================================
+  // INTERFAZ DE USUARIO (PESTAÑAS Y CHAT)
+  // ==========================================
+  function renderTabs() {
+    const container = document.getElementById('tabs-container');
+    container.innerHTML = '';
+    
+    for (const pid in connections) {
+      const data = connections[pid];
+      const div = document.createElement('div');
+      div.className = `tab ${activePeerId === pid ? 'active' : ''} ${data.unread > 0 ? 'has-unread' : ''}`;
+      
+      div.innerHTML = `
+        <span class="tab-name" onclick="openChat('${pid}')">ID: ${pid}</span>
+        <span class="unread-badge">${data.unread}</span>
+        <button class="tab-close" onclick="removeConnection('${pid}')">✕</button>
+      `;
+      container.appendChild(div);
+    }
+  }
 
-    const item = document.createElement('div');
-    item.className = 'tab-item' + (pid === activeTab ? ' active' : '');
+  function openChat(pid) {
+    activePeerId = pid;
+    connections[pid].unread = 0;
     
-    // Fix: Se cambió la lógica del botón X para evitar propagación de eventos indeseada
-    item.innerHTML = `
-      <div class="tab-avatar">
-        ${av}
-        <div class="tab-online-dot"></div>
-      </div>
-      <div class="tab-info">
-        <div class="tab-name">${escHtml(name)}</div>
-        <div class="tab-code">${pid}</div>
-      </div>
-      ${sess.unread > 0 ? `<div class="tab-unread">${sess.unread}</div>` : ''}
-      <button class="tab-close" data-pid="${pid}" title="Cerrar">✕</button>
-    `;
+    document.getElementById('welcome-screen').style.display = 'none';
+    document.getElementById('input-area').style.display = 'flex';
     
-    item.addEventListener('click', e => {
-      if (e.target.closest('.tab-close')) {
-         disconnectPeer(pid);
-      } else {
-         switchTab(pid);
+    renderTabs();
+    renderMessages();
+    setTimeout(() => document.getElementById('msg-input').focus(), 100);
+  }
+
+  function renderMessages() {
+    if (!activePeerId || !connections[activePeerId]) return;
+    const container = document.getElementById('messages-container');
+    container.innerHTML = '';
+    
+    const msgs = connections[activePeerId].messages;
+    msgs.forEach(msg => {
+      const div = document.createElement('div');
+      div.className = `msg ${msg.sender === 'me' ? 'me' : 'them'}`;
+      
+      if (msg.type === 'text') {
+        // Detectar links
+        const textEscaped = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const withLinks = textEscaped.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:inherit; text-decoration:underline;">$1</a>');
+        div.innerHTML = `<div>${withLinks}</div><div class="msg-time">${msg.time}</div>`;
+      } 
+      else if (msg.type === 'file') {
+        const isComplete = msg.progress === 100;
+        div.innerHTML = `
+          <div class="file-box">
+            <div class="file-icon">📄</div>
+            <div class="file-info">
+              <span class="file-name">${msg.fileName}</span>
+              <span class="file-size">${(msg.fileSize / 1024 / 1024).toFixed(2)} MB</span>
+            </div>
+          </div>
+          <div class="progress-container" style="display: ${isComplete ? 'none' : 'block'}" id="prog-bar-${msg.fileId}">
+            <div class="progress-fill" style="width: ${msg.progress}%"></div>
+          </div>
+          ${isComplete && msg.blobUrl ? `<a href="${msg.blobUrl}" download="${msg.fileName}"><button class="dl-btn">Descargar</button></a>` : ''}
+          <div class="msg-time" id="prog-text-${msg.fileId}">${isComplete ? msg.time : Math.floor(msg.progress)+'%'}</div>
+        `;
       }
+      container.appendChild(div);
     });
-    container.appendChild(item);
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// SAVED DEVICES
-// ═══════════════════════════════════════════════════════════════
-function getDevices()      { try { return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); } catch { return []; } }
-function saveDevices(list) { localStorage.setItem(LS_KEY, JSON.stringify(list)); }
-function getSavedDevice(code) { return getDevices().find(d => d.code === code); }
-
-function renderSavedList() {
-  const list    = getDevices();
-  const container = document.getElementById('savedList');
-  const noSaved   = document.getElementById('noSaved');
-
-  if (list.length === 0) {
-    noSaved.style.display = 'block';
-    container.innerHTML   = '';
-    container.appendChild(noSaved);
-    return;
+    
+    container.scrollTop = container.scrollHeight;
   }
 
-  noSaved.style.display = 'none';
-  container.innerHTML   = '';
+  function saveMessage(pid, msgObj) {
+    if (!connections[pid]) return;
+    msgObj.time = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    connections[pid].messages.push(msgObj);
+    
+    if (activePeerId === pid) {
+      renderMessages();
+    } else {
+      connections[pid].unread++;
+      renderTabs();
+    }
+  }
 
-  list.forEach((dev, i) => {
-    const item = document.createElement('div');
-    item.className = 'saved-item';
-    item.innerHTML = `
-      <div class="saved-avatar">${dev.avatar}</div>
-      <div class="saved-info">
-        <div class="saved-name">${escHtml(dev.name)}</div>
-        <div class="saved-code">${dev.code}</div>
-      </div>
-      <button class="saved-del" onclick="removeSaved(event,${i})" title="Eliminar">✕</button>
-    `;
-    item.addEventListener('click', e => {
-      if (e.target.closest('.saved-del')) return;
-      document.getElementById('connectInput').value = dev.code;
-      connectToPeer();
+  // ==========================================
+  // MENSAJERÍA DE TEXTO
+  // ==========================================
+  function sendTextMessage() {
+    if (!activePeerId) return;
+    const input = document.getElementById('msg-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Mostrar en mi pantalla
+    saveMessage(activePeerId, { sender: 'me', type: 'text', text: text });
+    
+    // Enviar por red
+    connections[activePeerId].conn.send({ type: 'text', text: text });
+    
+    input.value = '';
+  }
+
+  // ==========================================
+  // TRANSFERENCIA DE ARCHIVOS (SISTEMA PING-PONG)
+  // ==========================================
+  function handleFileSelect(e) {
+    if (!activePeerId) return;
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const fileId = Math.random().toString(36).substr(2, 9);
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    
+    // Guardar estado del archivo a enviar
+    fileTransfers[fileId] = {
+      role: 'sender',
+      file: file,
+      totalChunks: totalChunks,
+      currentChunk: 0
+    };
+
+    // Crear mensaje en UI
+    saveMessage(activePeerId, { sender: 'me', type: 'file', fileId: fileId, fileName: file.name, fileSize: file.size, progress: 0 });
+
+    // Iniciar protocolo avisando al receptor
+    connections[activePeerId].conn.send({ 
+      type: 'file-start', fileId: fileId, fileName: file.name, fileSize: file.size, totalChunks: totalChunks, mime: file.type 
     });
-    container.appendChild(item);
-  });
-}
+    
+    e.target.value = ''; // Reset input
+  }
 
-function promptSave(pid) {
-  pendingSaveCode = pid;
-  document.getElementById('modalNameInput').value = '';
-  document.getElementById('modalOverlay').classList.add('active');
-  setTimeout(() => document.getElementById('modalNameInput').focus(), 100);
-}
+  // Envía el pedazo específico del archivo
+  async function sendFileChunk(pid, fileId) {
+    const transfer = fileTransfers[fileId];
+    if (!transfer) return;
 
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('active');
-  pendingSaveCode = null;
-}
+    const start = transfer.currentChunk * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, transfer.file.size);
+    const chunkBlob = transfer.file.slice(start, end);
+    const arrayBuffer = await chunkBlob.arrayBuffer();
 
-function saveDeviceConfirm() {
-  const name = document.getElementById('modalNameInput').value.trim();
-  if (!name) { showToast('Ingresá un nombre','error'); return; }
+    connections[pid].conn.send({
+      type: 'file-chunk',
+      fileId: fileId,
+      chunkIndex: transfer.currentChunk,
+      data: arrayBuffer
+    });
 
-  const devices = getDevices();
-  const idx     = devices.findIndex(d => d.code === pendingSaveCode);
-  const device  = { code: pendingSaveCode, name, avatar: AVATARS[Math.floor(Math.random()*AVATARS.length)], addedAt: Date.now() };
+    // Actualizar UI Local
+    updateFileProgress(pid, fileId, transfer.currentChunk, transfer.totalChunks);
+  }
 
-  if (idx >= 0) devices[idx] = device;
-  else devices.unshift(device);
+  // ==========================================
+  // MANEJO DE DATOS ENTRANTES (EL CEREBRO)
+  // ==========================================
+  function handleDataReceipt(pid, data) {
+    if (!data || !data.type) return;
 
-  saveDevices(devices);
-  renderSavedList();
-  closeModal();
+    // 1. Mensaje de Texto
+    if (data.type === 'text') {
+      saveMessage(pid, { sender: 'them', type: 'text', text: data.text });
+    }
+    
+    // 2. Alguien quiere mandarme un archivo
+    else if (data.type === 'file-start') {
+      fileTransfers[data.fileId] = {
+        role: 'receiver', chunks: [], totalChunks: data.totalChunks,
+        fileName: data.fileName, fileSize: data.fileSize, mime: data.mime
+      };
+      
+      saveMessage(pid, { sender: 'them', type: 'file', fileId: data.fileId, fileName: data.fileName, fileSize: data.fileSize, progress: 0 });
+      
+      // Le respondo: "Estoy listo, mandá el pedazo 0"
+      connections[pid].conn.send({ type: 'file-ack', fileId: data.fileId, nextChunk: 0 });
+    }
+    
+    // 3. Recibo confirmación de que llegó mi pedazo (Acuse de recibo)
+    else if (data.type === 'file-ack') {
+      const transfer = fileTransfers[data.fileId];
+      if (transfer && transfer.role === 'sender') {
+        transfer.currentChunk = data.nextChunk;
+        if (transfer.currentChunk < transfer.totalChunks) {
+          sendFileChunk(pid, data.fileId); // Envío el siguiente
+        } else {
+          // Terminé de enviar todo
+          updateFileProgress(pid, data.fileId, transfer.totalChunks, transfer.totalChunks);
+          delete fileTransfers[data.fileId];
+        }
+      }
+    }
+    
+    // 4. Recibo un pedazo de archivo
+    else if (data.type === 'file-chunk') {
+      const transfer = fileTransfers[data.fileId];
+      if (transfer && transfer.role === 'receiver') {
+        transfer.chunks[data.chunkIndex] = data.data; // Guardo en memoria
+        
+        updateFileProgress(pid, data.fileId, data.chunkIndex + 1, transfer.totalChunks);
 
-  const hn = document.getElementById('hname-' + pendingSaveCode);
-  if (hn) hn.textContent = name;
-  const sb = document.getElementById('savebtn-' + pendingSaveCode);
-  if (sb) sb.style.display = 'none';
+        if (data.chunkIndex + 1 < transfer.totalChunks) {
+          // Pido el siguiente pedazo
+          connections[pid].conn.send({ type: 'file-ack', fileId: data.fileId, nextChunk: data.chunkIndex + 1 });
+        } else {
+          // Llegó el último pedazo, armo el archivo
+          const blob = new Blob(transfer.chunks, { type: transfer.mime });
+          const url = URL.createObjectURL(blob);
+          
+          // Actualizo el mensaje en el historial con el link de descarga
+          const msg = connections[pid].messages.find(m => m.fileId === data.fileId);
+          if (msg) {
+            msg.progress = 100;
+            msg.blobUrl = url;
+            if (activePeerId === pid) renderMessages();
+          }
+          
+          showToast(`Archivo recibido: ${transfer.fileName}`);
+          delete fileTransfers[data.fileId]; // Libero memoria de tracking
+        }
+      }
+    }
+  }
 
-  renderTabsList();
-  showToast(`"${name}" guardado ★`,'success');
-}
+  // ==========================================
+  // UTILIDADES
+  // ==========================================
+  function updateFileProgress(pid, fileId, current, total) {
+    const msg = connections[pid].messages.find(m => m.fileId === fileId);
+    if (!msg) return;
+    
+    msg.progress = Math.floor((current / total) * 100);
+    
+    // Si estoy viendo el chat, actualizo el DOM directo sin recargar todo
+    if (activePeerId === pid) {
+      const bar = document.getElementById(`prog-bar-${fileId}`);
+      const text = document.getElementById(`prog-text-${fileId}`);
+      if (bar) bar.querySelector('.progress-fill').style.width = `${msg.progress}%`;
+      if (text) text.innerText = `${msg.progress}%`;
+      
+      if (msg.progress === 100) renderMessages(); // Recargar para mostrar botón de descarga
+    }
+  }
 
-function removeSaved(e, i) {
-  e.stopPropagation();
-  const devices = getDevices();
-  devices.splice(i, 1);
-  saveDevices(devices);
-  renderSavedList();
-  showToast('Dispositivo eliminado','');
-}
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
 
-// ═══════════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════════
-function setStatus(type, text) {
-  const pill = document.getElementById('statusPill');
-  const span = document.getElementById('statusText');
-  pill.className  = 'status-pill ' + type;
-  span.textContent = text;
-}
+  function copyMyId() {
+    navigator.clipboard.writeText(myId).catch(() => {
+      const ta = document.createElement('textarea'); ta.value = myId; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    });
+    showToast('ID copiado al portapapeles');
+  }
 
-let toastT = null;
-function showToast(msg, type='') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className   = 'show ' + type;
-  if (toastT) clearTimeout(toastT);
-  toastT = setTimeout(() => { t.className = ''; }, 2800);
-}
-
-function copyMyCode() {
-  copyClip(myCode);
-  showToast('Código copiado!','success');
-}
-
-function copyClip(text) {
-  if (navigator.clipboard) navigator.clipboard.writeText(text).catch(()=>fbCopy(text));
-  else fbCopy(text);
-  showToast('Copiado!','success');
-}
-
-function fbCopy(text) {
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.cssText = 'position:fixed;opacity:0';
-  document.body.appendChild(ta);
-  ta.focus(); ta.select();
-  document.execCommand('copy');
-  document.body.removeChild(ta);
-}
-
-function clearEmpty(area) {
-  const e = area.querySelector('div[style*="conexión establecida"]');
-  if (e) e.remove();
-}
-
-function escHtml(s) {
-  return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-}
-
-function formatBytes(b) {
-  if (b < 1024) return b + ' B';
-  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
-  if (b < 1073741824) return (b/1048576).toFixed(1) + ' MB';
-  return (b/1073741824).toFixed(2) + ' GB';
-}
-
-function fileIcon(name) {
-  const e = name.split('.').pop().toLowerCase();
-  return ({
-    pdf:'📄',doc:'📝',docx:'📝',ppt:'📊',pptx:'📊',xls:'📈',xlsx:'📈',
-    jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',webp:'🖼️',svg:'🖼️',
-    mp4:'🎥',mov:'🎥',avi:'🎥',mkv:'🎥',mp3:'🎵',wav:'🎵',ogg:'🎵',
-    zip:'🗜️',rar:'🗜️','7z':'🗜️',txt:'📃',md:'📃'
-  })[e] || '📎';
-}
-
-// ─── Events ──────────────────────────────────────────────────
-document.getElementById('connectInput').addEventListener('input', e => {
-  e.target.value = e.target.value.replace(/\D/g,'').slice(0,6);
-});
-document.getElementById('connectInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') connectToPeer();
-});
-document.getElementById('modalNameInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') saveDeviceConfirm();
-});
-</script>
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"
-  onload="waitForPeer()"
-  onerror="document.getElementById('statusText').textContent='error CDN'">
+  // Iniciar
+  window.onload = init;
 </script>
 </body>
 </html>
